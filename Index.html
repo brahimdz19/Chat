@@ -4,6 +4,9 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Friends Chat</title>
+  
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  
   <style>
     :root{
       --primary:#2563eb;
@@ -12,8 +15,11 @@
       --muted:#6b7280;
       --mine:#dbeafe;
       --other:#f1f5f9;
+      --text-mine:#04224a; /* لون نصي أوضح لرسائلي */
+      --text-other:#1f2937; /* لون نصي أوضح لرسائل الآخرين */
+      --time-mine:#3b82f6; /* لون وقت رسائلي */
+      --time-other:#9ca3af; /* لون وقت رسائل الآخرين */
     }
-    /* ... (كود Dark Mode يبقى كما هو) ... */
     @media (prefers-color-scheme: dark){
       :root{
         --primary:#60a5fa;
@@ -21,27 +27,25 @@
         --card:#0f1724;
         --muted:#9ca3af;
         --mine:#1e3a8a;
-        --other:#0b1220;
+        --other:#0f172a;
+        --text-mine:#bfdbfe;
+        --text-other:#e5e7eb;
+        --time-mine:#93c5fd;
+        --time-other:#6b7280;
       }
       body { color: #e5e7eb; }
     }
 
-    /* ************************************************* */
-    /* التغيير 1: تأكد من box-sizing للعناصر كلها */
-    /* ************************************************* */
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;}
-    /* تعديل بسيط: استخدام `min-height: 100vh` لتغطية ارتفاع الشاشة بالكامل على الأجهزة المحمولة */
+    /* تحسين التجاوب على الأجهزة المحمولة */
     body{background:linear-gradient(180deg,var(--bg),#e6eefb);display:flex;align-items:center;justify-content:center;padding:0; min-height: 100vh;}
-    
+
     .app{
       width:100%;
       max-width:920px;
       height:100%;
-      /* ************************************************* */
-      /* التغيير 2: إزالة max-height للسماح بالتوسع على الشاشات الصغيرة */
-      /* ************************************************* */
-      /* max-height:900px; */ 
+      /* إزالة max-height لضمان التوسع على الشاشات الصغيرة */
       background:var(--card);
       border-radius:14px;
       box-shadow:0 6px 24px rgba(2,6,23,0.12);
@@ -54,7 +58,6 @@
       min-width:0;
     }
 
-    /* ... (الـ Header يبقى كما هو) ... */
     .header{
       padding:14px 16px;border-bottom:1px solid rgba(0,0,0,0.06);
       display:flex;align-items:center;gap:12px;justify-content:space-between;
@@ -65,114 +68,186 @@
     .header .meta{font-size:13px;opacity:0.95}
 
     .messages{
-      flex:1;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;background:transparent;
+      flex:1;padding:14px;overflow-y:auto;display:flex;flex-direction:column;gap:10px; /* زيادة التباعد بين الرسائل */
+      background:transparent;
     }
 
-    /* ... (رسائل الدردشة تبقى كما هي) ... */
-    .msg{max-width:78%;padding:8px 12px;border-radius:12px;word-break:break-word;font-size:14px;box-shadow:0 1px 0 rgba(0,0,0,0.03)}
-    .msg .meta{display:block;font-size:11px;color:var(--muted);margin-top:6px}
-    .mine{align-self:flex-end;background:var(--mine);color:#04224a;border-bottom-right-radius:4px}
-    .other{align-self:flex-start;background:var(--other);color:inherit;border-bottom-left-radius:4px}
+    /* تحسين تصميم الرسائل */
+    .msg{
+      max-width:78%;padding:10px 14px; /* زيادة التبطين */
+      border-radius:16px; /* زيادة التنعيم */
+      word-break:break-word;font-size:15px; /* زيادة حجم الخط */
+      box-shadow:0 1px 0 rgba(0,0,0,0.03);
+      position: relative; /* لتموضع الوقت بشكل أفضل */
+    }
+    
+    .msg .meta{
+      display:block;
+      font-size:11px;
+      margin-top:4px;
+      opacity: 0.8;
+      text-align: right;
+    }
+    
+    .mine{
+      align-self:flex-end;
+      background:var(--mine);
+      color:var(--text-mine);
+      border-bottom-right-radius:4px; /* زاوية الإرسال */
+    }
+    .mine .meta{ color:var(--time-mine); }
 
-    /* ... (شريط الإدخال يبقى كما هو) ... */
+    .other{
+      align-self:flex-start;
+      background:var(--other);
+      color:var(--text-other);
+      border-bottom-left-radius:4px; /* زاوية الاستقبال */
+    }
+    .other .meta{ color:var(--time-other); }
+    
+    /* مؤشر التحميل الأولي */
+    .loading-indicator {
+      text-align: center;
+      padding: 20px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
     .inputBar{
-      display:flex;gap:8px;padding:10px;border-top:1px solid rgba(0,0,0,0.06);background:linear-gradient(180deg, rgba(255,255,255,0.6), transparent);
+      display:flex;gap:8px;padding:10px;border-top:1px solid rgba(0,0,0,0.06);
+      background:linear-gradient(180deg, rgba(255,255,255,0.6), transparent);
       align-items:center;
     }
     .inputBar input[type="text"]{
-      flex:1;padding:10px 12px;border-radius:10px;border:1px solid #cbd5e1;font-size:15px;outline:none;
+      flex:1;padding:12px; /* زيادة التبطين */
+      border-radius:10px;border:1px solid #cbd5e1;font-size:15px;outline:none;
       background:transparent;
+      transition: border-color 0.2s;
     }
-    .btn{padding:10px 12px;border-radius:10px;border:none;background:var(--primary);color:white;cursor:pointer;font-weight:600}
+    .inputBar input[type="text"]:focus{
+      border-color: var(--primary);
+    }
+    
+    /* تحسين أزرار الإرسال والحذف باستخدام الأيقونات */
+    .btn{
+      padding:10px 12px;border-radius:10px;border:none;
+      background:var(--primary);color:white;cursor:pointer;font-weight:600;
+      display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+      transition: background 0.2s, opacity 0.2s;
+    }
     .btn.warn{background:#ef4444}
+    .btn:hover:not(:disabled){ opacity: 0.9; }
+    .btn:disabled{ opacity: 0.5; cursor: not-allowed; }
 
     /* right: side panel */
     .side{
       width:280px;border-left:1px solid rgba(0,0,0,0.06);display:flex;flex-direction:column;
       background:linear-gradient(180deg,#fbfdff,#f7fbfe);
-      /* ************************************************* */
-      /* التغيير 3: تحديد حد أدنى للارتفاع ليعمل بشكل جيد على الشاشات الصغيرة */
-      /* ************************************************* */
       min-height: 200px;
     }
     .side .pad{padding:14px}
+    
+    /* تحسين عرض قائمة المشاركين (onlineList) */
+    .onlineListContainer {
+      background: var(--bg); /* خلفية خفيفة */
+      border-radius: 10px;
+      padding: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+      margin-bottom: 15px;
+    }
+    
     .onlineList{
       display:flex;flex-direction:column;gap:8px;
-      /* ************************************************* */
-      /* التغيير 4: ضبط ارتفاع القائمة الجانبية بشكل أفضل */
-      /* ************************************************* */
-      max-height: calc(100% - 140px); 
-      overflow-y:auto; /* استخدام overflow-y بدلاً من overflow لتحديد الاتجاه */
-      padding-bottom: 8px; /* إضافة مسافة سفلية عند التمرير */
+      max-height: 350px; /* ارتفاع أقصى محدد لسطح المكتب */
+      overflow-y:auto; 
     }
-    .userChip{display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;background:rgba(255,255,255,0.6);font-size:14px}
+    .userChip{
+      display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px;
+      background:var(--card); /* لون أفتح للشريحة */
+      font-size:14px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    }
     .userDot{width:10px;height:10px;background:#10b981;border-radius:50%}
     .muted{color:var(--muted);font-size:13px}
 
-    /* small screens */
-    /* ************************************************* */
-    /* التغيير 5: تعديل استعلام الوسائط الرئيسي للشاشات الصغيرة */
-    /* ************************************************* */
+    /* small screens (Mobile/Tablet) */
     @media (max-width:720px){
       .app{
         flex-direction:column;
-        height:100vh; /* التأكد من أن التطبيق يغطي الشاشة بالكامل */
+        height:100vh;
         max-height:none;
         border-radius:0;
-        /* ************************************************* */
-        /* إضافة هذا لضمان أن الشريط الجانبي في الأسفل على الهاتف */
-        /* ************************************************* */
         min-height: 100vh; 
+      }
+      body {
+        padding: 0;
+        align-items: flex-start;
       }
       .side{
         width:100%;
         border-left:0;
         border-top:1px solid rgba(0,0,0,0.06);
-        order:2; /* يجعل الشريط الجانبي يظهر أسفل منطقة الدردشة */
-        height: auto; /* ليتناسب مع المحتوى */
+        order:2;
+        height: auto;
         min-height: 0;
       }
       .left{
         order:1;
-        /* ************************************************* */
-        /* إضافة هذا لضمان أن منطقة الدردشة تشغل المساحة المتبقية */
-        /* ************************************************* */
-        height: calc(100vh - 200px); /* تقليل الارتفاع للسماح بظهور الشريط الجانبي */
+        /* حساب ارتفاع منطقة الدردشة (المرسالة) */
+        height: calc(100vh - 200px); 
+        min-height: 300px;
       }
-
-      /* ************************************************* */
-      /* التغيير 6: تعديل ارتفاع قائمة المشاركين على الهاتف */
-      /* ************************************************* */
-      .side .pad { padding-bottom: 0; }
+      
+      .onlineListContainer {
+        margin-bottom: 5px;
+        padding: 8px;
+      }
+      
       .onlineList {
-        max-height: 150px; /* تحديد ارتفاع مناسب لقائمة المشاركين على الهاتف */
+        max-height: 120px; /* ارتفاع أقل لقائمة المشاركين على الهاتف */
+      }
+      
+      /* إخفاء نص زر "Clear" على الأجهزة الصغيرة */
+      #clearBtn span {
+        display: none;
+      }
+      #clearBtn {
+        padding: 8px;
       }
     }
 
     /* subtle fade-in */
     .msg{animation:fade .16s ease}
     @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+    
   </style>
 </head>
-<body>
-  <div class="app" role="application" aria-label="Friends Chat">
+<body onload="lucide.createIcons()"> <div class="app" role="application" aria-label="Friends Chat">
     <div class="left">
       <div class="header">
         <div>
           <div class="title">Friends Chat</div>
-          <div class="meta" id="statusMeta">Connecting...</div>
+          <div class="meta" id="statusMeta">Connecting... <span id="connIndicator" style="display:none; margin-left:5px;">⏳</span></div>
         </div>
         <div style="display:flex;gap:10px;align-items:center">
           <div id="onlineCount" class="muted">Online: 0</div>
-          <button id="clearBtn" class="btn warn" title="Clear all messages" style="padding: 8px 10px; font-size: 13px;">Clear</button> 
+          <button id="clearBtn" class="btn warn" title="Clear all messages">
+            <i data-lucide="trash-2" style="width:18px;height:18px"></i>
+            <span>Clear</span>
+          </button>
         </div>
       </div>
 
-      <div id="messages" class="messages" aria-live="polite"></div>
+      <div id="messages" class="messages" aria-live="polite">
+        <div id="initialLoader" class="loading-indicator">Loading messages...</div>
+      </div>
 
       <div class="inputBar">
         <input id="messageInput" type="text" placeholder="Type your message and press Enter..." autocomplete="off" />
-        <button id="sendBtn" class="btn">Send</button>
+        <button id="sendBtn" class="btn">
+          <i id="sendIcon" data-lucide="send" style="width:18px;height:18px"></i>
+          <span id="sendText">Send</span>
+        </button>
       </div>
     </div>
 
@@ -182,7 +257,9 @@
           <div style="font-weight:700">Participants</div>
           <div id="meName" class="muted"></div>
         </div>
-        <div id="onlineList" class="onlineList"></div>
+        <div class="onlineListContainer"> 
+          <div id="onlineList" class="onlineList"></div>
+        </div>
       </div>
       <div style="padding:14px;border-top:1px solid rgba(0,0,0,0.04);margin-top:auto">
         <div style="font-size:13px;color:var(--muted);margin-bottom:8px">Hints</div>
@@ -206,13 +283,13 @@
   <audio id="notifSound" src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_8b9b6b8cb3.mp3?filename=notification-113150.mp3" preload="auto"></audio>
 
   <script type="module">
-    // ... (كود Javascript يبقى كما هو) ...
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
     import {
       getDatabase, ref, push, onChildAdded, onValue,
-      set, onDisconnect, remove, get
+      set, onDisconnect, remove, query, limitToLast // إضافة query و limitToLast
     } from "https://www.gstatic.com/firebasejs/11.0.1/firebase-database.js";
 
+    // === your firebase config ===
     const firebaseConfig = {
       apiKey: "AIzaSyCfbR_4l7CCvtoXANqg02ZIlVBM4PipqrI",
       authDomain: "chat-ca276.firebaseapp.com",
@@ -237,12 +314,19 @@
     const meNameLabel = document.getElementById('meName');
     const messagesDiv = document.getElementById('messages');
     const sendBtn = document.getElementById('sendBtn');
+    const sendText = document.getElementById('sendText');
+    const sendIcon = document.getElementById('sendIcon');
     const messageInput = document.getElementById('messageInput');
     const clearBtn = document.getElementById('clearBtn');
     const notifSound = document.getElementById('notifSound');
     const onlineCountEl = document.getElementById('onlineCount');
     const onlineListEl = document.getElementById('onlineList');
     const statusMeta = document.getElementById('statusMeta');
+    const connIndicator = document.getElementById('connIndicator');
+    const initialLoader = document.getElementById('initialLoader');
+    
+    // flag لضمان أن مؤشر التحميل يُخفى بعد تحميل الرسائل الأولى فقط
+    let initialLoadComplete = false;
 
     // user id + name
     let userId = localStorage.getItem('chat_uid');
@@ -281,6 +365,7 @@
     function setPresence(){
       if(!userName) return;
       const myRef = ref(db, `presence/${userId}`);
+      // نضمن تعيين الحالة على الانترنت عند تحميل الصفحة أو إعادة الاتصال
       set(myRef, { name: userName, ts: Date.now() }).catch(()=>{});
       // remove on disconnect
       onDisconnect(myRef).remove().catch(()=>{});
@@ -303,7 +388,7 @@
       users.forEach(u=>{
         const el = document.createElement('div');
         el.className = 'userChip';
-        el.innerHTML = `<div style="flex:1"><strong>${u.name}</strong><div style="font-size:12px;color:var(--muted)">id: ${u.id?.slice?.(0,6) || ''}</div></div><div class="userDot" title="online"></div>`;
+        el.innerHTML = `<div style="flex:1"><strong>${escapeHtml(u.name)}</strong><div style="font-size:12px;color:var(--muted)">id: ${u.id?.slice?.(0,6) || ''}</div></div><div class="userDot" title="online"></div>`;
         onlineListEl.appendChild(el);
       });
     });
@@ -311,18 +396,54 @@
     // SEND message
     function sendMessage(){
       const txt = messageInput.value.trim();
-      if(!txt || !userName) return;
+      if(!txt || !userName || sendBtn.disabled) return;
+      
+      // منع الإرسال المزدوج وتغيير حالة الزر
+      sendBtn.disabled = true;
+      messageInput.disabled = true;
+      sendText.textContent = 'Sending...';
+      sendIcon.setAttribute('data-lucide', 'loader-2');
+      if (typeof lucide !== 'undefined') lucide.createIcons(); // إعادة رسم الأيقونة
+      
       const msg = { user: userName, text: txt, time: new Date().toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}), uid: userId, created: Date.now() };
-      push(messagesRef, msg).then(()=>{ messageInput.value=''; });
+      
+      push(messagesRef, msg).then(()=>{ 
+        messageInput.value='';
+        // إعادة حالة الزر وحقل الإدخال
+        sendBtn.disabled = false;
+        messageInput.disabled = false;
+        sendText.textContent = 'Send';
+        sendIcon.setAttribute('data-lucide', 'send');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        messageInput.focus();
+      }).catch((err) => {
+        alert('Failed to send message: ' + err.message);
+        // إعادة حالة الزر وحقل الإدخال حتى عند الفشل
+        sendBtn.disabled = false;
+        messageInput.disabled = false;
+        sendText.textContent = 'Send';
+        sendIcon.setAttribute('data-lucide', 'send');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+      });
     }
     sendBtn.onclick = sendMessage;
     messageInput.addEventListener('keypress', (e)=>{ if(e.key==='Enter') sendMessage(); });
 
-    // listen new messages
-    onChildAdded(messagesRef, (snap)=>{
+    // ************************************************* // تحسين: تحميل آخر 100 رسالة فقط في البداية
+    // ************************************************* const recentMessagesQuery = query(messagesRef, limitToLast(100));
+
+    onChildAdded(recentMessagesQuery, (snap)=>{
       const m = snap.val();
       if(!m) return;
+      
+      // إخفاء مؤشر التحميل بعد وصول أول رسالة
+      if (initialLoader && !initialLoadComplete) {
+        initialLoader.style.display = 'none';
+        initialLoadComplete = true;
+      }
+      
       renderMessage(m);
+      
       // play sound when message not from me
       if(m.uid !== userId) {
         notifSound.play().catch(()=>{});
@@ -333,16 +454,35 @@
     function renderMessage(m){
       const d = document.createElement('div');
       d.className = 'msg ' + (m.uid === userId ? 'mine' : 'other');
-      d.innerHTML = `<div style="font-weight:600">${escapeHtml(m.user)}</div><div style="margin-top:6px">${escapeHtml(m.text)}</div><span class="meta" style="display:block;margin-top:6px;color:var(--muted)">${escapeHtml(m.time)}</span>`;
+      d.innerHTML = `
+        <div style="font-weight:600">${escapeHtml(m.user)}</div>
+        <div style="margin-top:6px">${escapeHtml(m.text)}</div>
+        <span class="meta">${escapeHtml(m.time)}</span>
+      `;
       messagesDiv.appendChild(d);
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      // التأكد من التمرير للأسفل مع تأخير بسيط بعد إضافة الرسالة
+      setTimeout(() => {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }, 0);
     }
 
     // clear chat
     clearBtn.onclick = async ()=>{
       if(!confirm('Are you sure you want to delete all messages? This action cannot be undone.')) return;
+      clearBtn.disabled = true;
       // remove whole path
-      remove(messagesRef).then(()=>{ messagesDiv.innerHTML=''; }).catch(err=>alert('Failed: '+err.message));
+      remove(messagesRef).then(()=>{ 
+        messagesDiv.innerHTML='';
+        clearBtn.disabled = false;
+        // إعادة مؤشر التحميل
+        messagesDiv.appendChild(initialLoader);
+        initialLoader.textContent = 'Chat history cleared. Start chatting!';
+        initialLoader.style.display = 'block';
+        initialLoadComplete = false;
+      }).catch(err=>{
+        alert('Failed: '+err.message);
+        clearBtn.disabled = false;
+      });
     };
 
     // small helper to escape HTML
@@ -366,19 +506,28 @@
       }
     });
 
-    // simple connectivity indicator (optional)
-    const connectedRef = ref(db, '.info/connected');
+    // ************************************************* // تحسين: مؤشر الاتصال ومعالجة الانقطاع
+    // ************************************************* const connectedRef = ref(db, '.info/connected');
     onValue(connectedRef, (snap)=>{
-      const v = snap.val();
-      statusMeta.textContent = v ? 'Connected' : 'Disconnected';
+      const isConnected = snap.val();
+      if (isConnected) {
+        statusMeta.textContent = 'Connected';
+        connIndicator.style.display = 'none';
+        // إعادة تعيين حالة الحضور عند إعادة الاتصال (مهم)
+        if(userName) setPresence(); 
+      } else {
+        statusMeta.textContent = 'Disconnected';
+        connIndicator.textContent = '⚠️';
+        connIndicator.style.display = 'inline';
+      }
     });
 
     // auto-scroll to bottom when resizing small screens
-    window.addEventListener('resize', ()=>{ messagesDiv.scrollTop = messagesDiv.scrollHeight; });
-
-    // quick load last 100 messages on start (optional)
-    // Note: onChildAdded will stream all; for big apps you should limit queries.
-    // For simplicity we keep default behavior.
+    window.addEventListener('resize', ()=>{ 
+        if (messagesDiv) {
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+    });
 
   </script>
 </body>
